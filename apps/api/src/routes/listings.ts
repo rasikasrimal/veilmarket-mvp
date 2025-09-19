@@ -1,5 +1,4 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createListingSchema, searchListingsSchema } from '@veilmarket/core';
 
 export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
   // Create listing
@@ -7,7 +6,20 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['listings'],
       summary: 'Create listing',
-      body: createListingSchema,
+      body: {
+        type: 'object',
+        required: ['title', 'type', 'materialIdentifierId'],
+        properties: {
+          title: { type: 'string', minLength: 1, maxLength: 200 },
+          description: { type: 'string', maxLength: 2000 },
+          type: { type: 'string', enum: ['SELL', 'BUY_REQ'] },
+          quantity: { type: 'string', maxLength: 100 },
+          unit: { type: 'string', maxLength: 50 },
+          priceIndicative: { type: 'string', maxLength: 100 },
+          location: { type: 'string', maxLength: 200 },
+          materialIdentifierId: { type: 'string' }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement listing creation
@@ -19,7 +31,18 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['listings'],
       summary: 'Search listings',
-      querystring: searchListingsSchema,
+      querystring: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', maxLength: 200 },
+          materialScheme: { type: 'string', maxLength: 50 },
+          materialValue: { type: 'string', maxLength: 100 },
+          type: { type: 'string', enum: ['SELL', 'BUY_REQ'] },
+          location: { type: 'string', maxLength: 200 },
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement listings search

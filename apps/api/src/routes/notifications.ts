@@ -1,5 +1,4 @@
 import { FastifyPluginAsync } from 'fastify';
-import { paginationSchema } from '@veilmarket/core';
 
 export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
   // Get user notifications
@@ -7,7 +6,14 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['notifications'],
       summary: 'Get user notifications',
-      querystring: paginationSchema,
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          cursor: { type: 'string' }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement notifications retrieval

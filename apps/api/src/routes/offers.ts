@@ -1,5 +1,4 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createOfferSchema, updateOfferStateSchema } from '@veilmarket/core';
 
 export const offersRoutes: FastifyPluginAsync = async (fastify) => {
   // Create or counter offer
@@ -7,7 +6,20 @@ export const offersRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['offers'],
       summary: 'Create or counter offer',
-      body: createOfferSchema,
+      body: {
+        type: 'object',
+        required: ['listingId'],
+        properties: {
+          threadId: { type: 'string' },
+          listingId: { type: 'string' },
+          price: { type: 'number', minimum: 0 },
+          quantity: { type: 'string', maxLength: 100 },
+          unit: { type: 'string', maxLength: 50 },
+          terms: { type: 'string', maxLength: 1000 },
+          message: { type: 'string', maxLength: 500 },
+          expiresAt: { type: 'string', format: 'date-time' }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement offer creation/counter

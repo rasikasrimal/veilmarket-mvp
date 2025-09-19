@@ -1,5 +1,4 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createOrganizationSchema, inviteUserSchema } from '@veilmarket/core';
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Create organization
@@ -7,7 +6,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['auth'],
       summary: 'Create organization',
-      body: createOrganizationSchema,
+      body: {
+        type: 'object',
+        required: ['name', 'slug'],
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 100 },
+          slug: { type: 'string', minLength: 1, maxLength: 50, pattern: '^[a-z0-9-]+$' },
+          legalName: { type: 'string', minLength: 1, maxLength: 200 },
+          website: { type: 'string', format: 'uri' },
+          country: { type: 'string', minLength: 2, maxLength: 2 },
+          description: { type: 'string', maxLength: 1000 }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement organization creation
@@ -19,7 +29,15 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['auth'],
       summary: 'Invite user to organization',
-      body: inviteUserSchema,
+      body: {
+        type: 'object',
+        required: ['email', 'role', 'orgId'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+          role: { type: 'string', enum: ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] },
+          orgId: { type: 'string' }
+        }
+      }
     },
   }, async (request, reply) => {
     // TODO: Implement user invitation
