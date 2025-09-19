@@ -1,13 +1,4 @@
-Here’s a concise repo name suggestion and a production-ready `README.md` you can drop straight into the project.
 
-## Repo name suggestion
-
-**`veilmarket-mvp`**
-Short, memorable, and on-brand for “privacy-first” (identities are veiled until acceptance). Alternatives if you want options: `ipx-b2b-marketplace`, `cloaktrade`, `anon-b2b-market`.
-
----
-
-````markdown
 # VeilMarket (Privacy-First B2B Ingredients Marketplace · MVP)
 
 > **Next.js + TypeScript + Node + Postgres** · Identities stay private until an offer is accepted.  
