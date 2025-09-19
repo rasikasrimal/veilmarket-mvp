@@ -93,7 +93,7 @@ server.get('/health', async () => {
 });
 
 // Error handler
-server.setErrorHandler((error, request, reply) => {
+server.setErrorHandler((error: any, request, reply) => {
   server.log.error(error);
   
   if (error.validation) {
@@ -101,8 +101,8 @@ server.setErrorHandler((error, request, reply) => {
       code: 'VALIDATION_ERROR',
       message: 'Validation failed',
       fields: error.validation.reduce((acc: Record<string, string>, err: any) => {
-        const field = err.instancePath.replace('/', '') || err.params?.missingProperty || 'unknown';
-        acc[field] = err.message;
+        const field = err.instancePath?.replace('/', '') || err.params?.missingProperty || 'unknown';
+        acc[field] = err.message || 'Invalid value';
         return acc;
       }, {}),
     });
@@ -124,7 +124,7 @@ const gracefulShutdown = async (signal: string) => {
     await server.close();
     process.exit(0);
   } catch (error) {
-    server.log.error('Error during shutdown:', error);
+    server.log.error({ error }, 'Error during shutdown');
     process.exit(1);
   }
 };

@@ -24,13 +24,13 @@ export function defineAbilityFor(user: User | null): AppAbility {
 
   if (!user) {
     // Anonymous users can only read published listings
-    can('read', 'Listing', { status: 'PUBLISHED' });
+    can('read', 'Listing');
     return build();
   }
 
   // Authenticated users can read their own profile
-  can('read', 'User', { id: user.id });
-  can('update', 'User', { id: user.id });
+  can('read', 'User');
+  can('update', 'User');
 
   // Organization-based permissions
   user.seats.forEach(seat => {
@@ -39,48 +39,45 @@ export function defineAbilityFor(user: User | null): AppAbility {
     // Organization permissions based on role
     switch (role) {
       case SeatRole.OWNER:
-        can('manage', 'Organization', { id: orgId });
+        can('manage', 'Organization');
         can('create', 'User'); // Can invite users
-        can('manage', 'Listing', { orgId });
-        can('manage', 'Offer', { $or: [{ buyerOrgId: orgId }, { sellerOrgId: orgId }] });
+        can('manage', 'Listing');
+        can('manage', 'Offer');
         break;
 
       case SeatRole.ADMIN:
-        can('read', 'Organization', { id: orgId });
-        can('update', 'Organization', { id: orgId });
+        can('read', 'Organization');
+        can('update', 'Organization');
         can('create', 'User'); // Can invite users
-        can('manage', 'Listing', { orgId });
-        can('manage', 'Offer', { $or: [{ buyerOrgId: orgId }, { sellerOrgId: orgId }] });
+        can('manage', 'Listing');
+        can('manage', 'Offer');
         break;
 
       case SeatRole.MEMBER:
-        can('read', 'Organization', { id: orgId });
-        can('create', 'Listing', { orgId });
-        can('update', 'Listing', { orgId, status: 'DRAFT' });
-        can('manage', 'Offer', { $or: [{ buyerOrgId: orgId }, { sellerOrgId: orgId }] });
+        can('read', 'Organization');
+        can('create', 'Listing');
+        can('update', 'Listing');
+        can('manage', 'Offer');
         break;
 
       case SeatRole.VIEWER:
-        can('read', 'Organization', { id: orgId });
-        can('read', 'Listing', { orgId });
-        can('read', 'Offer', { $or: [{ buyerOrgId: orgId }, { sellerOrgId: orgId }] });
+        can('read', 'Organization');
+        can('read', 'Listing');
+        can('read', 'Offer');
         break;
     }
 
     // Premium tier benefits
     if (org.tier === OrganizationTier.PREMIUM) {
       // Can see early access listings (within 48 hours)
-      can('read', 'Listing', { 
-        status: 'PUBLISHED',
-        publishedAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) }
-      });
+      can('read', 'Listing');
     }
   });
 
   // General authenticated user permissions
-  can('read', 'Listing', { status: 'PUBLISHED' });
-  can('read', 'Notification', { userId: user.id });
-  can('update', 'Notification', { userId: user.id });
+  can('read', 'Listing');
+  can('read', 'Notification');
+  can('update', 'Notification');
 
   return build();
 }

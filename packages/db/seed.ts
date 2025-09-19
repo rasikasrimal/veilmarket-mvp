@@ -1,4 +1,4 @@
-import { PrismaClient } from './generated/client';
+import { PrismaClient } from '@prisma/client';
 import { OrganizationTier, SeatRole, ListingType, ListingStatus, OfferState } from '@veilmarket/core';
 
 const prisma = new PrismaClient();

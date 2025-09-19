@@ -27,6 +27,6 @@
       "@veilmarket/ui": ["../../packages/ui/src"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../packages/*/src/**/*"],
   "exclude": ["node_modules"]
 }
