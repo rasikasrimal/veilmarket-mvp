@@ -1,0 +1,31 @@
+{
+  "name": "veilmarket-mvp",
+  "version": "1.0.0",
+  "description": "Privacy-first B2B ingredients marketplace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "db:migrate": "cd packages/db && pnpm db:migrate",
+    "db:seed": "cd packages/db && pnpm db:seed",
+    "db:studio": "cd packages/db && pnpm db:studio",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.4",
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.3"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

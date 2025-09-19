@@ -1,0 +1,22 @@
+{
+  "name": "@veilmarket/db",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx seed.ts",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.11.0",
+    "bcryptjs": "^2.4.3",
+    "nanoid": "^5.0.6"
+  },
+  "devDependencies": {
+    "prisma": "^5.11.0",
+    "tsx": "^4.7.1",
+    "@types/bcryptjs": "^2.4.6"
+  }
+}
