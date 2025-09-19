@@ -2,6 +2,9 @@ import fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
+import { appRouter } from './trpc/router';
+import { createContext } from './trpc/context';
 
 const server = fastify({
   logger: {
@@ -25,6 +28,12 @@ async function main() {
       timeWindow: '1 minute',
     });
 
+    // Register tRPC
+    await server.register(fastifyTRPCPlugin, {
+      prefix: '/trpc',
+      trpcOptions: { router: appRouter, createContext },
+    });
+
     // Health check
     server.get('/health', async () => {
       return { status: 'ok', timestamp: new Date().toISOString() };
@@ -38,6 +47,7 @@ async function main() {
     const PORT = process.env.PORT || 4000;
     await server.listen({ port: Number(PORT), host: '0.0.0.0' });
     console.log(`🚀 VeilMarket API server running on http://localhost:${PORT}`);
+    console.log(`📡 tRPC endpoint: http://localhost:${PORT}/trpc`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);
