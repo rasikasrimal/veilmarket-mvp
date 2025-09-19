@@ -1,0 +1,21 @@
+{
+  "name": "@veilmarket/core",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.23.8",
+    "@casl/ability": "^6.7.1",
+    "@casl/prisma": "^1.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
