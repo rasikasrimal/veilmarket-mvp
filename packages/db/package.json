@@ -10,7 +10,7 @@
                     "db:studio":  "prisma studio",
                     "db:generate":  "prisma generate",
                     "db:push":  "prisma db push",
-                    "db:init":  "PGPASSWORD=veilmarket123 psql -h localhost -U veilmarket -d veilmarket -f init.sql",
+                    "db:init":  "node ./scripts/db-init.js",
                     "build":  "tsc client.ts --outDir dist --declaration"
                 },
     "dependencies":  {
