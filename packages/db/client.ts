@@ -1,7 +1,8 @@
+﻿import 'dotenv/config';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://veilmarket:veilmarket123@localhost:5432/veilmarket',
+  connectionString: process.env.DATABASE_URL || 'postgresql://veilmarket:veilmarket123@localhost:6543/veilmarket',
 });
 
 export const db = {

@@ -28,6 +28,7 @@ model Organization {
   offers            Offer[]
   promotions        Promotion[]
   notifications     Notification[]
+  qaItemsAuthored  QAItem[]
   auditLogs         AuditLog[]
 
   @@map("organizations")

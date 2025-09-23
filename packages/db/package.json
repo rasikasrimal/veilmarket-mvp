@@ -1,29 +1,30 @@
 {
-  "name": "@veilmarket/db",
-  "version": "1.0.0",
-  "private": true,
-  "main": "client.js",
-  "types": "client.d.ts",
-  "scripts": {
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx seed-simple.ts",
-    "db:studio": "prisma studio",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:init": "PGPASSWORD=veilmarket123 psql -h localhost -U veilmarket -d veilmarket -f init.sql",
-    "build": "tsc client.ts --outDir dist --declaration"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.11.0",
-    "@types/pg": "^8.15.5",
-    "bcryptjs": "^2.4.3",
-    "nanoid": "^5.0.6",
-    "pg": "^8.16.3"
-  },
-  "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "prisma": "^5.11.0",
-    "tsx": "^4.7.1",
-    "typescript": "^5.4.3"
-  }
+    "name":  "@veilmarket/db",
+    "version":  "1.0.0",
+    "private":  true,
+    "main":  "client.js",
+    "types":  "client.d.ts",
+    "scripts":  {
+                    "db:migrate":  "prisma migrate dev",
+                    "db:seed":  "tsx seed-simple.ts",
+                    "db:studio":  "prisma studio",
+                    "db:generate":  "prisma generate",
+                    "db:push":  "prisma db push",
+                    "db:init":  "node ./scripts/db-init.js",
+                    "build":  "tsc client.ts --outDir dist --declaration"
+                },
+    "dependencies":  {
+                         "@prisma/client":  "^5.11.0",
+                         "@types/pg":  "^8.15.5",
+                         "bcryptjs":  "^2.4.3",
+                         "nanoid":  "^5.0.6",
+                         "pg":  "^8.16.3",
+                         "dotenv":  "^16.4.5"
+                     },
+    "devDependencies":  {
+                            "@types/bcryptjs":  "^2.4.6",
+                            "prisma":  "^5.11.0",
+                            "tsx":  "^4.7.1",
+                            "typescript":  "^5.4.3"
+                        }
 }

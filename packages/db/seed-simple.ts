@@ -1,155 +1,386 @@
-import { db } from './client';
-import { nanoid } from 'nanoid';
+import "dotenv/config";
+import {
+  Prisma,
+  PrismaClient,
+  IdentifierScheme,
+  OrgTier,
+  UserRole,
+  ListingType,
+  OfferState,
+  NotificationType,
+} from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+type IdentifierSeed = {
+  key: string;
+  id: string;
+  scheme: IdentifierScheme;
+  value: string;
+  description: string;
+};
+
+type OrgSeed = {
+  key: string;
+  id: string;
+  handle: string;
+  legalName: string;
+  website: string;
+  country: string;
+  tier: OrgTier;
+  isVerified: boolean;
+};
+
+type UserSeed = {
+  key: string;
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  orgKey: string;
+};
+
+type ListingSeed = {
+  key: string;
+  id: string;
+  title: string;
+  description: string;
+  type: ListingType;
+  identifierKey: string;
+  quantity: string;
+  unit: string;
+  location: string;
+  orgKey: string;
+  createdByKey: string;
+};
+
+const identifierSeeds: IdentifierSeed[] = [
+  { key: "ethanol", id: "mid_seed_ethanol", scheme: IdentifierScheme.CAS, value: "64-17-5", description: "Ethanol" },
+  { key: "citricAcid", id: "mid_seed_citric_acid", scheme: IdentifierScheme.EC_NUMBER, value: "E330", description: "Citric acid" },
+  { key: "glycerin", id: "mid_seed_glycerin", scheme: IdentifierScheme.CAS, value: "56-81-5", description: "Glycerin" },
+  { key: "lacticAcid", id: "mid_seed_lactic_acid", scheme: IdentifierScheme.CAS, value: "50-21-5", description: "Lactic acid" },
+];
+
+const orgSeeds: OrgSeed[] = [
+  {
+    key: "acme",
+    id: "org_seed_acme",
+    handle: "acme-ingredients-xyz",
+    legalName: "Acme Ingredients Corp",
+    website: "https://acme-ingredients.example.com",
+    country: "US",
+    tier: OrgTier.PREMIUM,
+    isVerified: true,
+  },
+  {
+    key: "brightchem",
+    id: "org_seed_brightchem",
+    handle: "brightchem-abc",
+    legalName: "BrightChem Solutions",
+    website: "https://brightchem.example.com",
+    country: "DE",
+    tier: OrgTier.FREE,
+    isVerified: true,
+  },
+];
+
+const userSeeds: UserSeed[] = [
+  { key: "acmeOwner", id: "usr_seed_acme_owner", email: "owner@acme.example.com", firstName: "John", lastName: "Smith", role: UserRole.OWNER, orgKey: "acme" },
+  { key: "acmeAdmin", id: "usr_seed_acme_admin", email: "admin@acme.example.com", firstName: "Sarah", lastName: "Johnson", role: UserRole.ADMIN, orgKey: "acme" },
+  { key: "brightchemOwner", id: "usr_seed_brightchem_owner", email: "owner@brightchem.example.com", firstName: "Klaus", lastName: "Mueller", role: UserRole.OWNER, orgKey: "brightchem" },
+];
+
+const listingSeeds: ListingSeed[] = [
+  {
+    key: "acmeEthanol",
+    id: "lst_seed_acme_ethanol",
+    title: "High-Quality Ethanol - Food Grade",
+    description:
+      "Premium food-grade ethanol suitable for pharmaceutical and food applications. 99.5% purity with certificates of analysis on every batch.",
+    type: ListingType.SELL,
+    identifierKey: "ethanol",
+    quantity: "10000",
+    unit: "L",
+    location: "Houston, Texas, USA",
+    orgKey: "acme",
+    createdByKey: "acmeOwner",
+  },
+  {
+    key: "acmeGlycerin",
+    id: "lst_seed_acme_glycerin",
+    title: "Pharma-Grade Glycerin - USP",
+    description:
+      "USP-grade glycerin produced in ISO-certified facilities. Available in drum and tote sizes with flexible logistics support.",
+    type: ListingType.SELL,
+    identifierKey: "glycerin",
+    quantity: "7500",
+    unit: "kg",
+    location: "Savannah, Georgia, USA",
+    orgKey: "acme",
+    createdByKey: "acmeAdmin",
+  },
+  {
+    key: "brightchemCitric",
+    id: "lst_seed_brightchem_citric",
+    title: "Seeking Citric Acid - USP Grade",
+    description:
+      "Looking for high-quality citric acid meeting USP standards for pharmaceutical formulations. Need consistent monthly supply of 5000 kg minimum.",
+    type: ListingType.BUY_REQUEST,
+    identifierKey: "citricAcid",
+    quantity: "5000",
+    unit: "kg",
+    location: "Berlin, Germany",
+    orgKey: "brightchem",
+    createdByKey: "brightchemOwner",
+  },
+  {
+    key: "brightchemLactic",
+    id: "lst_seed_brightchem_lactic",
+    title: "Surplus Lactic Acid - Food & Beverage",
+    description:
+      "Food-grade lactic acid available from recent production run. Ideal for beverage acidification and dairy applications. Ships from Hamburg port.",
+    type: ListingType.SELL,
+    identifierKey: "lacticAcid",
+    quantity: "3200",
+    unit: "kg",
+    location: "Hamburg, Germany",
+    orgKey: "brightchem",
+    createdByKey: "brightchemOwner",
+  },
+];
+
+const OFFER_THREAD_ID = "thr_seed_acme_ethanol";
+const OFFER_ID = "off_seed_brightchem_ethanol";
+const NOTIFICATION_OFFER = "not_seed_offer_received";
+const NOTIFICATION_PROMOTION = "not_seed_listing_promoted";
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log("Seeding database with demo data...");
 
   try {
-    // Create material identifiers
-    const casId = `mid_${nanoid(24)}`;
-    const eNumberId = `mid_${nanoid(24)}`;
+    const identifierRecords = new Map<string, string>();
+    for (const seed of identifierSeeds) {
+      const record = await prisma.materialIdentifier.upsert({
+        where: { scheme_value: { scheme: seed.scheme, value: seed.value } },
+        update: {
+          description: seed.description,
+        },
+        create: {
+          id: seed.id,
+          scheme: seed.scheme,
+          value: seed.value,
+          description: seed.description,
+        },
+      });
 
-    await db.query(`
-      INSERT INTO material_identifiers (id, scheme, value, description) 
-      VALUES ($1, 'CAS', '64-17-5', 'Ethanol')
-      ON CONFLICT (scheme, value) DO NOTHING
-    `, [casId]);
+      identifierRecords.set(seed.key, record.id);
+    }
 
-    await db.query(`
-      INSERT INTO material_identifiers (id, scheme, value, description) 
-      VALUES ($1, 'EC_NUMBER', 'E330', 'Citric acid')
-      ON CONFLICT (scheme, value) DO NOTHING
-    `, [eNumberId]);
+    const organizationRecords = new Map<string, Awaited<ReturnType<typeof prisma.organization.upsert>>>();
+    for (const seed of orgSeeds) {
+      const record = await prisma.organization.upsert({
+        where: { handle: seed.handle },
+        update: {
+          legalName: seed.legalName,
+          website: seed.website,
+          country: seed.country,
+          tier: seed.tier,
+          isVerified: seed.isVerified,
+        },
+        create: {
+          id: seed.id,
+          handle: seed.handle,
+          legalName: seed.legalName,
+          website: seed.website,
+          country: seed.country,
+          tier: seed.tier,
+          isVerified: seed.isVerified,
+        },
+      });
 
-    // Get the actual identifiers (in case they already existed)
-    const { rows: identifiers } = await db.query(`
-      SELECT id, scheme, value FROM material_identifiers 
-      WHERE (scheme = 'CAS' AND value = '64-17-5') OR (scheme = 'EC_NUMBER' AND value = 'E330')
-    `);
+      organizationRecords.set(seed.key, record);
+    }
 
-    const casIdentifier = identifiers.find(i => i.scheme === 'CAS');
-    const eNumberIdentifier = identifiers.find(i => i.scheme === 'EC_NUMBER');
+    const userRecords = new Map<string, Awaited<ReturnType<typeof prisma.user.upsert>>>();
+    for (const seed of userSeeds) {
+      const organization = organizationRecords.get(seed.orgKey);
+      if (!organization) {
+        throw new Error(`Missing organization for user ${seed.email}`);
+      }
 
-    // Create organizations
-    const acmeOrgId = `org_${nanoid(24)}`;
-    const brightChemOrgId = `org_${nanoid(24)}`;
+      const record = await prisma.user.upsert({
+        where: { email: seed.email },
+        update: {
+          firstName: seed.firstName,
+          lastName: seed.lastName,
+          role: seed.role,
+          organizationId: organization.id,
+        },
+        create: {
+          id: seed.id,
+          email: seed.email,
+          firstName: seed.firstName,
+          lastName: seed.lastName,
+          role: seed.role,
+          organizationId: organization.id,
+        },
+      });
 
-    await db.query(`
-      INSERT INTO organizations (id, handle, legal_name, website, country, tier, is_verified) 
-      VALUES ($1, 'acme-ingredients-xyz', 'Acme Ingredients Corp', 'https://acme-ingredients.example.com', 'US', 'PREMIUM', true)
-      ON CONFLICT (handle) DO NOTHING
-    `, [acmeOrgId]);
+      userRecords.set(seed.key, record);
+    }
 
-    await db.query(`
-      INSERT INTO organizations (id, handle, legal_name, website, country, tier, is_verified) 
-      VALUES ($1, 'brightchem-abc', 'BrightChem Solutions', 'https://brightchem.example.com', 'DE', 'FREE', true)
-      ON CONFLICT (handle) DO NOTHING
-    `, [brightChemOrgId]);
+    const listingRecords = new Map<string, Awaited<ReturnType<typeof prisma.listing.upsert>>>();
+    for (const seed of listingSeeds) {
+      const organization = organizationRecords.get(seed.orgKey);
+      const createdBy = userRecords.get(seed.createdByKey);
+      const identifierId = identifierRecords.get(seed.identifierKey);
 
-    // Get the actual organizations
-    const { rows: orgs } = await db.query(`
-      SELECT id, handle FROM organizations 
-      WHERE handle IN ('acme-ingredients-xyz', 'brightchem-abc')
-    `);
+      if (!organization || !createdBy || !identifierId) {
+        throw new Error(`Missing dependencies for listing ${seed.title}`);
+      }
 
-    const acmeOrg = orgs.find(o => o.handle === 'acme-ingredients-xyz');
-    const brightChemOrg = orgs.find(o => o.handle === 'brightchem-abc');
+      const record = await prisma.listing.upsert({
+        where: { id: seed.id },
+        update: {
+          title: seed.title,
+          description: seed.description,
+          type: seed.type,
+          materialIdentifierId: identifierId,
+          quantity: seed.quantity,
+          unit: seed.unit,
+          location: seed.location,
+          publishedAt: new Date(),
+          organizationId: organization.id,
+          createdById: createdBy.id,
+        },
+        create: {
+          id: seed.id,
+          title: seed.title,
+          description: seed.description,
+          type: seed.type,
+          materialIdentifierId: identifierId,
+          quantity: seed.quantity,
+          unit: seed.unit,
+          location: seed.location,
+          publishedAt: new Date(),
+          organizationId: organization.id,
+          createdById: createdBy.id,
+        },
+      });
 
-    // Create users
-    const acmeOwnerId = `usr_${nanoid(24)}`;
-    const acmeAdminId = `usr_${nanoid(24)}`;
-    const brightChemOwnerId = `usr_${nanoid(24)}`;
+      listingRecords.set(seed.key, record);
+    }
 
-    await db.query(`
-      INSERT INTO users (id, email, first_name, last_name, role, organization_id) 
-      VALUES ($1, 'owner@acme.example.com', 'John', 'Smith', 'OWNER', $2)
-      ON CONFLICT (email) DO NOTHING
-    `, [acmeOwnerId, acmeOrg.id]);
+    const sellListing = listingRecords.get("acmeEthanol");
+    const brightchemOrg = organizationRecords.get("brightchem");
 
-    await db.query(`
-      INSERT INTO users (id, email, first_name, last_name, role, organization_id) 
-      VALUES ($1, 'admin@acme.example.com', 'Sarah', 'Johnson', 'ADMIN', $2)
-      ON CONFLICT (email) DO NOTHING
-    `, [acmeAdminId, acmeOrg.id]);
+    if (!sellListing || !brightchemOrg) {
+      throw new Error("Required records for offer thread are missing.");
+    }
 
-    await db.query(`
-      INSERT INTO users (id, email, first_name, last_name, role, organization_id) 
-      VALUES ($1, 'owner@brightchem.example.com', 'Klaus', 'Mueller', 'OWNER', $2)
-      ON CONFLICT (email) DO NOTHING
-    `, [brightChemOwnerId, brightChemOrg.id]);
+    const offerThread = await prisma.offerThread.upsert({
+      where: { id: OFFER_THREAD_ID },
+      update: {
+        listingId: sellListing.id,
+      },
+      create: {
+        id: OFFER_THREAD_ID,
+        listingId: sellListing.id,
+      },
+    });
 
-    // Get the actual users
-    const { rows: users } = await db.query(`
-      SELECT id, email FROM users 
-      WHERE email IN ('owner@acme.example.com', 'owner@brightchem.example.com')
-    `);
+    await prisma.offer.upsert({
+      where: { id: OFFER_ID },
+      update: {
+        state: OfferState.OPEN,
+        price: new Prisma.Decimal("2.50"),
+        quantity: "1000 L",
+        terms: "Payment: 30 days net",
+        message: "We are interested in a trial order of 1000 L. Could you provide a sample?",
+        organizationId: brightchemOrg.id,
+        threadId: offerThread.id,
+      },
+      create: {
+        id: OFFER_ID,
+        state: OfferState.OPEN,
+        price: new Prisma.Decimal("2.50"),
+        quantity: "1000 L",
+        terms: "Payment: 30 days net",
+        message: "We are interested in a trial order of 1000 L. Could you provide a sample?",
+        organizationId: brightchemOrg.id,
+        threadId: offerThread.id,
+      },
+    });
 
-    const acmeOwner = users.find(u => u.email === 'owner@acme.example.com');
-    const brightChemOwner = users.find(u => u.email === 'owner@brightchem.example.com');
+    const acmeOwner = userRecords.get("acmeOwner");
+    const brightchemOwner = userRecords.get("brightchemOwner");
 
-    // Create listings
-    const sellListingId = `lst_${nanoid(24)}`;
-    const buyListingId = `lst_${nanoid(24)}`;
+    if (!acmeOwner || !brightchemOwner) {
+      throw new Error("Missing users for notification seeding.");
+    }
 
-    await db.query(`
-      INSERT INTO listings (id, title, description, type, material_identifier_id, quantity, unit, location, published_at, organization_id, created_by_id) 
-      VALUES ($1, 'High-Quality Ethanol - Food Grade', 
-              'Premium food-grade ethanol suitable for pharmaceutical and food applications. 99.5% purity guaranteed. Available in bulk quantities with flexible delivery options.',
-              'SELL', $2, '10000', 'L', 'Texas, USA', NOW(), $3, $4)
-    `, [sellListingId, casIdentifier.id, acmeOrg.id, acmeOwner.id]);
+    await prisma.notification.upsert({
+      where: { id: NOTIFICATION_OFFER },
+      update: {
+        userId: acmeOwner.id,
+        organizationId: acmeOwner.organizationId,
+        type: NotificationType.OFFER_RECEIVED,
+        title: "New Offer Received",
+        message: "BrightChem has made an offer on your ethanol listing",
+        payload: { offerId: OFFER_ID, listingId: sellListing.id },
+      },
+      create: {
+        id: NOTIFICATION_OFFER,
+        userId: acmeOwner.id,
+        organizationId: acmeOwner.organizationId,
+        type: NotificationType.OFFER_RECEIVED,
+        title: "New Offer Received",
+        message: "BrightChem has made an offer on your ethanol listing",
+        payload: { offerId: OFFER_ID, listingId: sellListing.id },
+      },
+    });
 
-    await db.query(`
-      INSERT INTO listings (id, title, description, type, material_identifier_id, quantity, unit, location, published_at, organization_id, created_by_id) 
-      VALUES ($1, 'Seeking Citric Acid - USP Grade',
-              'Looking for high-quality citric acid meeting USP standards for pharmaceutical formulations. Need consistent monthly supply of 5000kg minimum.',
-              'BUY_REQUEST', $2, '5000', 'kg', 'Berlin, Germany', NOW(), $3, $4)
-    `, [buyListingId, eNumberIdentifier.id, brightChemOrg.id, brightChemOwner.id]);
+    const lacticListing = listingRecords.get("brightchemLactic");
+    if (!lacticListing) {
+      throw new Error("Missing lactic acid listing for notification.");
+    }
 
-    // Create offer thread and offer
-    const offerThreadId = `thr_${nanoid(24)}`;
-    const initialOfferId = `off_${nanoid(24)}`;
+    await prisma.notification.upsert({
+      where: { id: NOTIFICATION_PROMOTION },
+      update: {
+        userId: brightchemOwner.id,
+        organizationId: brightchemOwner.organizationId,
+        type: NotificationType.LISTING_PROMOTED,
+        title: "Listing Promoted",
+        message: "Your lactic acid lot is now highlighted to buyers for 5 days",
+        payload: { listingId: lacticListing.id },
+      },
+      create: {
+        id: NOTIFICATION_PROMOTION,
+        userId: brightchemOwner.id,
+        organizationId: brightchemOwner.organizationId,
+        type: NotificationType.LISTING_PROMOTED,
+        title: "Listing Promoted",
+        message: "Your lactic acid lot is now highlighted to buyers for 5 days",
+        payload: { listingId: lacticListing.id },
+      },
+    });
 
-    await db.query(`
-      INSERT INTO offer_threads (id, listing_id) VALUES ($1, $2)
-    `, [offerThreadId, sellListingId]);
-
-    await db.query(`
-      INSERT INTO offers (id, thread_id, organization_id, state, price, quantity, terms, message) 
-      VALUES ($1, $2, $3, 'OPEN', 2.50, '1000 L', 'Payment: 30 days net', 'We are interested in a trial order of 1000L. Could you provide a sample?')
-    `, [initialOfferId, offerThreadId, brightChemOrg.id]);
-
-    // Create sample notifications
-    const notificationId1 = `not_${nanoid(24)}`;
-    const notificationId2 = `not_${nanoid(24)}`;
-
-    await db.query(`
-      INSERT INTO notifications (id, user_id, organization_id, type, title, message, payload) 
-      VALUES ($1, $2, $3, 'OFFER_RECEIVED', 'New Offer Received', 'BrightChem has made an offer on your Ethanol listing', $4)
-    `, [notificationId1, acmeOwner.id, acmeOrg.id, JSON.stringify({ offerId: initialOfferId, listingId: sellListingId })]);
-
-    await db.query(`
-      INSERT INTO notifications (id, user_id, organization_id, type, title, message, payload) 
-      VALUES ($1, $2, $3, 'LISTING_PROMOTED', 'Listing Promoted', 'Your Citric Acid listing is now promoted for 5 days', $4)
-    `, [notificationId2, brightChemOwner.id, brightChemOrg.id, JSON.stringify({ listingId: buyListingId })]);
-
-    console.log('✅ Database seeded successfully!');
-    console.log('\n📧 Demo credentials:');
-    console.log('Acme Ingredients (PREMIUM):');
-    console.log('  Owner: owner@acme.example.com');
-    console.log('  Admin: admin@acme.example.com');
-    console.log('\nBrightChem (FREE):');
-    console.log('  Owner: owner@brightchem.example.com');
-    console.log('\n🔗 Sample data:');
-    console.log(`  Sell Listing: ${sellListingId}`);
-    console.log(`  Buy Request: ${buyListingId}`);
-    console.log(`  Offer Thread: ${offerThreadId}`);
-    console.log(`  Initial Offer: ${initialOfferId}`);
-
+    console.log("Seed completed successfully.");
+    console.log("\nDemo organizations:");
+    console.log("  Acme Ingredients Corp (PREMIUM)");
+    console.log("  BrightChem Solutions (FREE)");
+    console.log("\nSample listings:");
+    console.log(`  Acme: ${sellListing.id} (Ethanol)`);
+    console.log(`  Acme: ${listingRecords.get("acmeGlycerin")?.id ?? "unknown"} (Glycerin)`);
+    console.log(`  BrightChem: ${listingRecords.get("brightchemCitric")?.id ?? "unknown"} (Citric Acid Buy Request)`);
+    console.log(`  BrightChem: ${lacticListing.id} (Lactic Acid Surplus)`);
   } catch (error) {
-    console.error('❌ Seeding failed:', error);
+    console.error("Seeding failed:", error);
     throw error;
   } finally {
-    await db.end();
+    await prisma.$disconnect();
   }
 }
 
