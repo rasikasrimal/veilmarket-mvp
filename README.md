@@ -1,4 +1,4 @@
-# VeilMarket (Privacy-First B2B Ingredients Marketplace · MVP)
+ VeilMarket (Privacy-First B2B Ingredients Marketplace · MVP)
 
 > **Next.js + TypeScript + Node + Postgres** · Identities stay private until an offer is accepted.  
 > Phase 1 foundation: orgs & RBAC, listings & docs with watermarked previews + masking, offers engine with strict "latest-offer-only" integrity, search/filters, premium early access, promoted placements (Stripe), notifications, seeds, tests, and staging deploy.
@@ -14,6 +14,7 @@ pnpm i
 # 2) Bring up local deps (Postgres, MinIO, Mailpit)
 cd infra/local && docker compose up -d
 
+
 # 3) Create env files from samples
 cp apps/web/.env.local.sample apps/web/.env.local
 cp apps/api/.env.sample apps/api/.env
@@ -26,6 +27,7 @@ pnpm dev
 ```
 
 Browse to `http://localhost:3000` for web, `http://localhost:4000` for API.
+
 
 ---
 
@@ -51,6 +53,7 @@ infra/
 * **Document pipeline**: Originals go to a private bucket. A worker generates:
 
   * Watermarked preview (listing ID, timestamp, "VeilMarket").
+
   * **Auto-mask** email/phone in preview with high-precision regex + heuristics; originals remain untouched.
 * **Offers integrity**: An offer thread enforces *single open* invariant. Only the most recent **OPEN** offer can transition to **ACCEPTED**.
 
@@ -89,6 +92,7 @@ infra/
 * **Listing**: `id`, `title`, `type` (`SELL|BUY_REQUEST`), `materialIdentifierId`, `publishedAt`
 * **Document**: `id`, `originalPath`, `previewPath`, `hasMaskedContent`
 * **OfferThread**: `id`, `listingId`
+
 * **Offer**: `id`, `threadId`, `state` (`OPEN|REJECTED|ACCEPTED|SUPERSEDED|EXPIRED`), `price`, `qty`, `terms`
 
   * **Constraint**: `unique where (threadId, state='OPEN')` at most one
@@ -167,6 +171,7 @@ await db.$transaction(async (tx) => {
 ## Promoted placements (Stripe)
 
 * Stripe Checkout for a one-off "Promote listing 5 days".
+
 * Webhook (`/webhooks/stripe`) marks `Promotion.expiresAt = purchasedAt + 5d`.
 * UI pins promoted listings to the top of search & category pages until expiry.
 
@@ -177,6 +182,7 @@ await db.$transaction(async (tx) => {
 * **In-app**: Real-time feed; mark read/unread; filter by type.
 * **Email**: Transactional for key events (offers, acceptance, identity reveal).
 * **Types**: `OFFER_RECEIVED`, `OFFER_ACCEPTED`, `OFFER_REJECTED`, `OFFER_COUNTERED`, `LISTING_PROMOTED`, `IDENTITY_REVEALED`, `INVITE_RECEIVED`.
+
 
 ---
 
@@ -200,6 +206,7 @@ defineAbilityFor(user) {
   cannot('read', 'User', ['email', 'phone']); // privacy
 }
 ```
+
 
 ---
 
@@ -237,6 +244,7 @@ S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=veilmarket
 S3_SECRET_KEY=veilmarket123
 STRIPE_SECRET_KEY=sk_test_...
+
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 
 # Feature flags
@@ -259,6 +267,7 @@ docker compose up -d
 
 Provides: Postgres (`:5432`), MinIO (`:9000`, console `:9001`), Mailpit (`:8025`).
 
+
 ### Commands
 
 ```bash
@@ -276,6 +285,7 @@ pnpm dev         # start all apps in watch mode
 
 # Production build
 pnpm build
+
 ```
 
 ---
@@ -288,6 +298,7 @@ pnpm build
 * **Users**: demo owner/admin/member seats
 * **Identifiers**: example CAS#/E-numbers
 * **Listings**: SELL and BUY_REQ
+
 * **Offers**: threads with OPEN + COUNTER states to demo acceptance guard
 * **Promotions**: one pinned listing (expires 5 days from seed)
 
@@ -323,6 +334,7 @@ cd infra/deploy
 
 Environment variables sourced from `staging.env`. Supports AWS/Azure/GCP.
 
+
 ---
 
 ## Production-readiness checklist (Phase 1)
@@ -340,6 +352,7 @@ Environment variables sourced from `staging.env`. Supports AWS/Azure/GCP.
 * ⏳ **SSL termination** (reverse proxy/CDN).
 * ⏳ **Monitoring** hooks (metrics, alerting).
 
+
 ---
 
 ## Security & privacy notes
@@ -348,6 +361,7 @@ Environment variables sourced from `staging.env`. Supports AWS/Azure/GCP.
 * **No personal emails/phones** shown pre-acceptance; masked in previews and UI.
 * Originals stored encrypted at rest; previews are derived assets with watermark + masking.
 * All "reveal" actions are **audited**.
+
 * Stripe handled client→Checkout; sensitive PCI data never touches our servers.
 
 ---
@@ -358,6 +372,7 @@ Environment variables sourced from `staging.env`. Supports AWS/Azure/GCP.
 * Company verification: what data source (docs upload vs. third-party)?
 * Premium definition: org-tier only (no per-seat add-on) for now?
 * Q&A visibility rules (public vs. reveal-gated)?
+
 * Staging cloud preference (AWS/Azure/GCP) and region?
 * Any brand/legal copy for watermark text?
 
@@ -372,3 +387,4 @@ Commercial. All rights reserved. (Can switch to a custom license once contract i
 ## Credits
 
 Built with ❤️ on Next.js, Fastify, Prisma, Postgres, and Stripe.
+
