@@ -1,0 +1,281 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                String   @id @default(cuid())
+  handle            String   @unique // anonymized handle like "acme-corp-xyz"
+  legalName         String
+  website           String?
+  country           String
+  tier              OrgTier  @default(FREE)
+  isVerified        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  users             User[]
+  subscriptions     Subscription[]
+  listings          Listing[]
+  offers            Offer[]
+  promotions        Promotion[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  role          UserRole @default(MEMBER)
+  isActive      Boolean  @default(true)
+  inviteToken   String?  @unique
+  inviteExpires DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdListings Listing[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model MaterialIdentifier {
+  id          String           @id @default(cuid())
+  scheme      IdentifierScheme
+  value       String
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+
+  // Relationships
+  listings    Listing[]
+
+  @@unique([scheme, value])
+  @@map("material_identifiers")
+}
+
+model Listing {
+  id                    String      @id @default(cuid())
+  title                 String
+  description           String
+  type                  ListingType
+  materialIdentifierId  String
+  quantity              String?
+  unit                  String?
+  location              String?
+  publishedAt           DateTime?
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relationships
+  organizationId       String
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById          String
+  createdBy            User              @relation(fields: [createdById], references: [id])
+  materialIdentifier   MaterialIdentifier @relation(fields: [materialIdentifierId], references: [id])
+  documents            Document[]
+  offerThreads         OfferThread[]
+  promotions           Promotion[]
+  qaItems              QAItem[]
+
+  @@map("listings")
+}
+
+model Document {
+  id                String   @id @default(cuid())
+  filename          String
+  originalPath      String   // S3 path to original
+  previewPath       String?  // S3 path to watermarked preview
+  fileSize          Int
+  mimeType          String
+  isProcessed       Boolean  @default(false)
+  hasMaskedContent  Boolean  @default(false)
+  uploadedAt        DateTime @default(now())
+
+  // Relationships
+  listingId         String
+  listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model OfferThread {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relationships
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  offers    Offer[]
+
+  @@map("offer_threads")
+}
+
+model Offer {
+  id          String      @id @default(cuid())
+  state       OfferState  @default(DRAFT)
+  price       Decimal?
+  quantity    String?
+  terms       String?
+  message     String?
+  expiresAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relationships
+  threadId       String
+  thread         OfferThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, state], name: "unique_open_offer", map: "unique_open_offer")
+  @@map("offers")
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  tier        OrgTier
+  renewalAt   DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Promotion {
+  id           String   @id @default(cuid())
+  purchasedAt  DateTime @default(now())
+  expiresAt    DateTime
+  stripePaymentIntentId String?
+
+  // Relationships
+  listingId    String
+  listing      Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("promotions")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  // Relationships
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model QAItem {
+  id         String    @id @default(cuid())
+  question   String
+  answer     String?
+  visibility QAVisibility @default(PUBLIC)
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+
+  // Relationships
+  listingId     String
+  listing       Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  authorOrgId   String
+  authorOrg     Organization @relation(fields: [authorOrgId], references: [id], onDelete: Cascade)
+
+  @@map("qa_items")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  resource  String
+  resourceId String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relationships
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum OrgTier {
+  FREE
+  PREMIUM
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum IdentifierScheme {
+  CAS
+  EC_NUMBER  // E-number
+  UN_NUMBER
+  INTERNAL_SKU
+}
+
+enum ListingType {
+  SELL
+  BUY_REQUEST
+}
+
+enum OfferState {
+  DRAFT
+  OPEN
+  COUNTER
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+  EXPIRED
+}
+
+enum NotificationType {
+  OFFER_RECEIVED
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  OFFER_COUNTERED
+  LISTING_PROMOTED
+  IDENTITY_REVEALED
+  INVITE_RECEIVED
+}
+
+enum QAVisibility {
+  PUBLIC
+  REVEAL_GATED
+}
